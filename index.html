@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بازی سکه</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            background-color: black; /* تم رنگی سیاه */
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #coin {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+        }
+        #coin img {
+            width: 200px;
+            height: 200px;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #settings-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        #settings-menu {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: none;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .setting-item {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .setting-item label {
+            margin-right: 10px;
+        }
+        .floating-number {
+            position: absolute;
+            font-size: 30px;
+            font-weight: bold;
+            animation: moveScoreUp 1s forwards;
+        }
+        @keyframes moveScoreUp {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(0, -150px); }
+        }
+        .floating-coin {
+            position: absolute;
+            opacity: 1;
+            animation-duration: 1s;
+            animation-fill-mode: forwards;
+        }
+        @keyframes moveLeftCoin {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(-300px); opacity: 0; }
+        }
+        @keyframes moveRightCoin {
+            0% { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(300px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="coin" onclick="clickCoin(event)">
+            <img src="098.jpg" alt="coin">
+        </div>
+        <div id="score">امتیاز: 0</div>
+    </div>
+    <button id="settings-button" onclick="toggleSettingsMenu()">تنظیمات</button>
+    <div id="settings-menu">
+        <div class="setting-item">
+            <label for="coin-speed">سرعت چرخش سکه</label>
+            <input type="range" id="coin-speed" min="1" max="5" step="0.1" value="3" onchange="changeSpinSpeed(event)">
+        </div>
+        <div class="setting-item">
+            <label for="sound-volume">صدای بازی</label>
+            <input type="range" id="sound-volume" min="0" max="1" step="0.1" value="1" onchange="changeSoundVolume(event)">
+        </div>
+        <div class="setting-item">
+            <label for="floating-speed">سرعت حرکت عدد شناور</label>
+            <input type="range" id="floating-speed" min="0.5" max="2" step="0.1" value="1" onchange="changeFloatingSpeed(event)">
+        </div>
+        <div class="setting-item">
+            <label for="toggle-sound">خاموش/روشن کردن صدای سکه</label>
+            <input type="checkbox" id="toggle-sound" onchange="toggleCoinSound(event)">
+        </div>
+        <!-- اضافه کردن نام اکانت تلگرامی که قابل تغییر باشد -->
+        <div class="setting-item">
+            <label for="telegram-account">نام اکانت تلگرام: </label>
+            <input type="text" id="telegram-account" value="your_username" onchange="updateTelegramAccount()">
+        </div>
+        <!-- اضافه کردن منوی "کد سرمایه گذاری" -->
+        <div class="setting-item">
+            <label for="investment-code">کد سرمایه گذاری:</label>
+            <input type="text" id="investment-code" placeholder="کد خود را وارد کنید">
+        </div>
+        <!-- اضافه کردن منوی "شماره کارت" -->
+        <div class="setting-item">
+            <label for="card-number">لطفاً شماره کارت خود را وارد کنید:</label>
+            <input type="text" id="card-number" placeholder="شماره کارت">
+        </div>
+        <!-- اضافه کردن منوی "نام دارنده کارت" -->
+        <div class="setting-item">
+            <label for="card-holder">نام دارنده کارت را وارد کنید:</label>
+            <input type="text" id="card-holder" placeholder="نام دارنده کارت">
+        </div>
+    </div>
+    <audio id="coin-sound" src="432.mp3"></audio>
+
+    <script>
+        let score = 0;
+        let spinSpeed = 3;
+        let floatingSpeed = 1;
+        let soundEnabled = true;  // وضعیت صدای کلیک سکه
+        let telegramAccount = 'your_username'; // مقدار اولیه نام اکانت تلگرام
+        let cardNumber = ''; // مقدار شماره کارت
+        let cardHolder = ''; // مقدار نام دارنده کارت
+
+        function clickCoin(event) {
+            if (soundEnabled) {
+                let coinSound = document.getElementById("coin-sound");
+                if (!isNaN(coinSound.duration)) {
+                    coinSound.currentTime = coinSound.duration * 0.03;
+                    coinSound.play();
+                }
+            }
+            score += 10;
+            updateScore();
+            showFloatingNumber(event);
+            showFloatingCoins(event);
+        }
+
+        function updateScore() {
+            let scoreElement = document.getElementById("score");
+            scoreElement.innerHTML = `امتیاز: ${score}`;
+        }
+
+        function showFloatingNumber(event) {
+            let gameContainer = document.getElementById("game-container");
+            let numberElement = document.createElement("div");
+            numberElement.classList.add("floating-number");
+            numberElement.innerText = `${score}`;
+            numberElement.style.left = `${event.clientX}px`;
+            numberElement.style.top = `${event.clientY}px`;
+            numberElement.style.animationDuration = `${floatingSpeed}s`;
+            gameContainer.appendChild(numberElement);
+            setTimeout(() => {
+                numberElement.remove();
+            }, floatingSpeed * 1000);
+        }
+
+        function showFloatingCoins(event) {
+            let gameContainer = document.getElementById("game-container");
+            let coin = document.getElementById("coin");
+            let coinRect = coin.getBoundingClientRect();
+            let marginLeft = 175;
+            let marginRight = 175;
+            let positions = [
+                { left: coinRect.left - marginLeft, top: coinRect.top + coinRect.height / 2 - 50, animation: "moveLeftCoin" },
+                { left: coinRect.left + coinRect.width + marginRight, top: coinRect.top + coinRect.height / 2 - 50, animation: "moveRightCoin" }
+            ];
+            for (let pos of positions) {
+                let floatCoin = document.createElement("div");
+                floatCoin.classList.add("floating-coin");
+                floatCoin.style.animationName = pos.animation;
+                let coinImage = document.createElement("img");
+                coinImage.src = "098.jpg";
+                coinImage.width = 100;
+                coinImage.height = 100;
+                floatCoin.appendChild(coinImage);
+                floatCoin.style.left = `${pos.left}px`;
+                floatCoin.style.top = `${pos.top}px`;
+                gameContainer.appendChild(floatCoin);
+                setTimeout(() => {
+                    floatCoin.remove();
+                }, 1000);
+            }
+        }
+
+        function toggleSettingsMenu() {
+            let menu = document.getElementById('settings-menu');
+            menu.style.display = menu.style.display === 'none' || menu.style.display === '' ? 'block' : 'none';
+        }
+
+        function changeSpinSpeed(event) {
+            spinSpeed = event.target.value;
+        }
+
+        function changeSoundVolume(event) {
+            let coinSound = document.getElementById('coin-sound');
+            coinSound.volume = event.target.value;
+        }
+
+        function changeFloatingSpeed(event) {
+            floatingSpeed = event.target.value;
+        }
+
+        function toggleCoinSound(event) {
+            soundEnabled = event.target.checked;
+        }
+
+        function updateTelegramAccount() {
+            let telegramAccountInput = document.getElementById('telegram-account');
+            telegramAccount = telegramAccountInput.value;
+            console.log(`نام جدید اکانت تلگرام: ${telegramAccount}`);
+        }
+
+        // ذخیره شماره کارت و نام دارنده کارت
+        function updateCardInfo() {
+            cardNumber = document.getElementById('card-number').value;
+            cardHolder = document.getElementById('card-holder').value;
+            console.log(`شماره کارت: ${cardNumber}, نام دارنده کارت: ${cardHolder}`);
+        }
+    </script>
+</body>
+</html>
